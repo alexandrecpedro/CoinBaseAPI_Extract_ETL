@@ -52,7 +52,7 @@ def create_table():
 def extract_bitcoin_data():
     """Extracts the current Bitcoin price from the Coinbase API."""
     url = "https://api.coinbase.com/v2/prices/spot"
-    response = requests.get(url=url)
+    response = requests.get(url=url, timeout=15)
     if response.status_code == 200:
         return response.json()
     logger.error(f"API error: {response.status_code}")
