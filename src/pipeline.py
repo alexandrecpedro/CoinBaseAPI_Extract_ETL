@@ -119,6 +119,9 @@ def bitcoin_pipeline():
 
 
 if __name__ == "__main__":
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
+
     create_table()
     logger.info("Starting ETL pipeline with updates every 15 seconds... (Press CTRL+C to stop)")
 
