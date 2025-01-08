@@ -27,11 +27,38 @@ def read_postgres_data():
             user=POSTGRES_USER,
             password=POSTGRES_PASSWORD
         )
-
-        query = "SELECT * FROM bitcoin_prices"
-        df = pd.read_sql(query, conn)
+        query = "SELECT * FROM bitcoin_prices ORDER BY timestamp DESC"
+        df = pd.read_sql(sql=query, con=conn)
         conn.close()
-
+        return df
     except Exception as e:
-        st.error(f"Error while connecting to PostgreSQL: {ex}")
+        st.error(f"Error while connecting to PostgreSQL: {e}")
         return pd.DataFrame()
+
+def main():
+    st.set_page_config(page_title="Bitcoin Price Dashboard", layout="wide")
+    st.title("📊 Bitcoin Price Dashboard")
+    st.write("This dashboard displays Bitcoin price data periodically collected in a PostgreSQL database.")
+
+    df = read_postgres_data()
+
+    if not df.empty:
+        st.subheader("📋 Recent Data")
+        st.dataframe(data=df)
+
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df = df.sort_values(by='timestamp')
+
+        st.subheader("📈 Bitcoin Price Evolution")
+        st.line_chart(data=df, x='timestamp', y='value', use_container_width=True)
+
+        st.subheader("🔢 General Statistics")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Current Price", f"USD {df['value'].iloc[-1]:,.2f}")
+        col2.metric("Maximum Price", f"USD {df['value'].max():,.2f}")
+        col3.metric("Minimum Price", f"USD {df['value'].min():,.2f}")
+    else:
+        st.warning("No data found in the PostgreSQL database.")
+
+if __name__ == "__main__":
+    main()
