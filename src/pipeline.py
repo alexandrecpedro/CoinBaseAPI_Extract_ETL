@@ -5,9 +5,11 @@ import time
 from database import Base, BitcoinPrice
 from datetime import datetime
 from dotenv import load_dotenv
+from flask import Flask
 from logging import basicConfig, getLogger, INFO
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import threading
 # from tinydb import TinyDB
 
 
@@ -44,6 +46,12 @@ Session = sessionmaker(bind=engine)
 # ------------------------------------------------------
 
 # 3. FUNCTIONS
+app = Flask(__name__)
+
+@app.route('/')
+def health_check():
+    return 'Service is running!'
+
 def create_table():
     """Creates the database table if it does not already exist."""
     Base.metadata.create_all(bind=engine)
@@ -117,10 +125,16 @@ def bitcoin_pipeline():
         # Example of a final log with placeholders
         logger.info("Pipeline successfully completed!")
 
+def start_server():
+    app.run(host="0.0.0.0", port=8080)
 
 if __name__ == "__main__":
     create_table()
     logger.info("Starting ETL pipeline with updates every 15 seconds... (Press CTRL+C to stop)")
+
+    # Start the server in a separate thread
+    server_thread = threading.Thread(target=start_server)
+    server_thread.start()
 
     while True:
         try:
@@ -132,3 +146,5 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error(f"Unexpected error during the pipeline: {e}")
             time.sleep(15)
+        finally:
+            logger.info("Ending pipeline execution!")
