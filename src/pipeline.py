@@ -5,28 +5,11 @@ import time
 from database import Base, BitcoinPrice
 from datetime import datetime
 from dotenv import load_dotenv
-from flask import Flask
 from logging import basicConfig, getLogger, INFO
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import threading
 # from tinydb import TinyDB
 
-# 1. ENVIRONMENT VARIABLES
-## 1.1 Load environment variables
-load_dotenv()
-
-## 1.2 Read the separated variables from the .env file (non-SSL)
-### 1.2.1 APP Variables
-APP_HOST = os.getenv("APP_HOST")
-APP_PORT = int(os.getenv("APP_PORT"))
-
-### 1.2.2 Database Variables
-POSTGRES_HOST = os.getenv("POSTGRES_HOST")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT")
-POSTGRES_USER = os.getenv("POSTGRES_USER")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-POSTGRES_DB = os.getenv("POSTGRES_DB")
 
 # ------------------------------------------------------
 # 1. LOGFIRE SETTINGS
@@ -39,24 +22,28 @@ logfire.instrument_requests()
 
 # ------------------------------------------------------
 # 2. DATABASE SETTINGS
-## 2.1 Construct the PostgreSQL connection URL (non-SSL)
+## 2.1 Load environment variables
+load_dotenv()
+
+## 2.2 Read the separated variables from the .env file
+POSTGRES_HOST = os.getenv("POSTGRES_HOST")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT")
+POSTGRES_USER = os.getenv("POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+POSTGRES_DB = os.getenv("POSTGRES_DB")
+
+## 2.3 Construct the PostgreSQL connection URL (non-SSL)
 DATABASE_URL = (
     f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}"
     f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 )
 
-## 2.2 Create the engine and session
+## 2.4 Create the engine and session
 engine = create_engine(url=DATABASE_URL)
 Session = sessionmaker(bind=engine)
 # ------------------------------------------------------
 
 # 3. FUNCTIONS
-app = Flask(__name__)
-
-@app.route('/')
-def health_check():
-    return 'Service is running!'
-
 def create_table():
     """Creates the database table if it does not already exist."""
     Base.metadata.create_all(bind=engine)
@@ -130,16 +117,10 @@ def bitcoin_pipeline():
         # Example of a final log with placeholders
         logger.info("Pipeline successfully completed!")
 
-def start_server():
-    app.run(host=APP_HOST, port=APP_PORT, debug=True)
 
 if __name__ == "__main__":
     create_table()
     logger.info("Starting ETL pipeline with updates every 15 seconds... (Press CTRL+C to stop)")
-
-    # Start the server in a separate thread
-    server_thread = threading.Thread(target=start_server)
-    server_thread.start()
 
     while True:
         try:
